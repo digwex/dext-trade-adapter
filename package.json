@@ -1,12 +1,15 @@
 {
   "name": "@digwex/dext-trade-adapter",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
+    "@digwex:registry": "https://npm.pkg.github.com/digwex"
   },
+  "files": [
+    "dist/**/*"
+  ],
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch"
