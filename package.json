@@ -1,0 +1,22 @@
+{
+  "name": "adapter",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "dev": "tsup src/index.ts --watch --format esm,cjs --dts"
+  },
+  "dependencies": {
+    "@pump-fun/pump-swap-sdk": "^0.0.1-beta.23",
+    "@raydium-io/raydium-sdk-v2": "^0.1.128-alpha",
+    "@solana/spl-token": "^0.4.13",
+    "@solana/web3.js": "^1.98.0",
+    "bn.js": "^5.2.2"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.1.6",
+    "tsup": "^7.0.0",
+    "typescript": "^5.0.0"
+  }
+}
