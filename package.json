@@ -1,9 +1,12 @@
 {
-  "name": "adapter",
+  "name": "@digwex/dext-trade-adapter",
   "version": "1.0.0",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch"
@@ -11,7 +14,6 @@
   "dependencies": {
     "@pump-fun/pump-swap-sdk": "^0.0.1-beta.23",
     "@raydium-io/raydium-sdk-v2": "^0.1.128-alpha",
-    "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "^1.98.0",
     "bn.js": "^5.2.2"
   },
