@@ -1,11 +1,12 @@
 {
   "name": "adapter",
   "version": "1.0.0",
-  "main": "dist/index.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts",
-    "dev": "tsup src/index.ts --watch --format esm,cjs --dts"
+    "build": "vite build",
+    "dev": "vite build --watch"
   },
   "dependencies": {
     "@pump-fun/pump-swap-sdk": "^0.0.1-beta.23",
@@ -16,7 +17,9 @@
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.6",
-    "tsup": "^7.0.0",
-    "typescript": "^5.0.0"
+    "@vitejs/plugin-react": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0",
+    "vite-plugin-dts": "^3.6.0"
   }
 }
