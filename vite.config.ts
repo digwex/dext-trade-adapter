@@ -9,20 +9,20 @@ export default defineConfig({
       formats: ['es', 'cjs'],
       fileName: (format) => `index.${format === 'es' ? 'mjs' : 'cjs'}`,
     },
-    rollupOptions: {
-      external: [
-        '@pump-fun/pump-swap-sdk',
-        '@raydium-io/raydium-sdk-v2',
-        '@solana/web3.js',
-        '@solana/spl-token',
-        'bn.js',
-      ],
-      output: {
-        globals: {
-          'bn.js': 'BN',
-        },
-      },
-    },
+    // rollupOptions: {
+    //   external: [
+    //     '@pump-fun/pump-swap-sdk',
+    //     '@raydium-io/raydium-sdk-v2',
+    //     '@solana/web3.js',
+    //     '@solana/spl-token',
+    //     'bn.js',
+    //   ],
+    //   output: {
+    //     globals: {
+    //       'bn.js': 'BN',
+    //     },
+    //   },
+    // },
     sourcemap: false,
   },
   plugins: [dts()],
