@@ -17,7 +17,7 @@ import {
   getAccount,
   getAssociatedTokenAddressSync,
 } from '@solana/spl-token'
-
+import { initRaydiumSdk } from './blockchain/raydium'
 export interface ISwapStrategy {
   executeSwap(
     adapter: IDEXAdapter,
@@ -454,6 +454,7 @@ export class RetailStrategy implements ISwapStrategy {
   }
 }
 
+export { initRaydiumSdk }
 // amount = [0.75, 0.9, 0.98, 0.95, 1.2, 0.85, 1, 2, 3, 5]
 
 // buy 1 -> spec-wallet1
