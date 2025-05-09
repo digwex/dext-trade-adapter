@@ -12,7 +12,13 @@ export async function sendVtx(
   tx: Transaction,
   signers: Keypair[],
   needCompute: boolean = false
-): Promise<string> {
+): Promise<{
+  signature?: string
+  error?: {
+    type: number
+    msg: string
+  }
+}> {
   const solanaConnection = getSolanaConnection()
   const blockHash = await solanaConnection.getLatestBlockhash()
 
@@ -30,18 +36,24 @@ export async function sendVtx(
     )
   }
 
-  // Wrap into VersionedTransaction
   const vTx = new VersionedTransaction(messageV0)
 
   vTx.sign(signers)
 
-  // const simulate = await solanaConnection.simulateTransaction(vTx)
+  const simulate = await solanaConnection.simulateTransaction(vTx)
 
-  // if (simulate.value.err) {
-  //   throw simulate.value.err
-  // }
+  if (simulate.value.err) {
+    return {
+      error: {
+        msg: simulate.value.err.toString(),
+        type: 1,
+      },
+    }
+  }
 
   const result = await solanaConnection.sendTransaction(vTx)
 
-  return result
+  return {
+    signature: result + '',
+  }
 }

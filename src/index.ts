@@ -33,7 +33,13 @@ export interface IDEXAdapter {
     amountIn: bigint,
     amountOut: bigint,
     slippage: number
-  ): Promise<string>
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }>
 
   buyWithFees(
     wallet: Keypair,
@@ -50,7 +56,13 @@ export interface IDEXAdapter {
       wallet: PublicKey
       percent: number
     }[]
-  ): Promise<string>
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }>
 
   // send tx and return signature
   sell(
@@ -60,7 +72,13 @@ export interface IDEXAdapter {
     amountIn: bigint,
     amountOut: bigint,
     slippage: number
-  ): Promise<string>
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }>
 
   sellWithFees(
     wallet: Keypair,
@@ -77,7 +95,13 @@ export interface IDEXAdapter {
       wallet: PublicKey
       percent: number
     }[]
-  ): Promise<string>
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }>
 
   // send tx and return signature
   swap(
@@ -86,7 +110,13 @@ export interface IDEXAdapter {
     amount: number,
     slippage: number,
     by: 'sell' | 'buy'
-  ): Promise<string>
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }>
 
   // only instruction for sell without create ATA if posible for specific platfor pumpSwap, raydium, orca and other
   sellIx(
@@ -123,7 +153,13 @@ export class RaydiumAdapter implements IDEXAdapter {
     amountIn: bigint,
     amountOut: bigint,
     slippage: number
-  ): Promise<string> {
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }> {
     throw new Error('Method not implemented.')
   }
   sellWithFees(
@@ -133,7 +169,13 @@ export class RaydiumAdapter implements IDEXAdapter {
     amountIn: bigint,
     amountOut: bigint,
     slippage: number
-  ): Promise<string> {
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }> {
     throw new Error('Method not implemented.')
   }
   buy(
@@ -143,7 +185,13 @@ export class RaydiumAdapter implements IDEXAdapter {
     amountIn: bigint,
     amountOut: bigint,
     slippage: number
-  ): Promise<string> {
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }> {
     throw new Error('Method not implemented.')
   }
   sell(
@@ -153,7 +201,13 @@ export class RaydiumAdapter implements IDEXAdapter {
     amountIn: bigint,
     amountOut: bigint,
     slippage: number
-  ): Promise<string> {
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }> {
     throw new Error('Method not implemented.')
   }
 
@@ -188,9 +242,15 @@ export class RaydiumAdapter implements IDEXAdapter {
     toToken: string,
     amount: number,
     slippage: number
-  ): Promise<string> {
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }> {
     // Генерация и отправка транзакции на Raydium
-    return '0x123txhash'
+    throw new Error('Method not implemented.')
   }
 
   async getPoolInfo(): Promise<any> {
@@ -215,7 +275,13 @@ export class PumpSwapAdapter implements IDEXAdapter {
       wallet: PublicKey
       percent: number
     }[]
-  ): Promise<string> {
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }> {
     const pool = getPool(inputMint, outputMint)
 
     const prepareWsol = await prepareWsolSwapInstructions(wallet.publicKey, 0n)
@@ -261,9 +327,9 @@ export class PumpSwapAdapter implements IDEXAdapter {
 
     addFeeToTx(tx, wallet.publicKey, feeAmount, serviceFee, referralsFee)
 
-    const sig = await sendVtx(wallet, tx, [wallet], true)
+    const result = await sendVtx(wallet, tx, [wallet], true)
 
-    return sig
+    return result
   }
   async buyWithFees(
     wallet: Keypair,
@@ -280,7 +346,13 @@ export class PumpSwapAdapter implements IDEXAdapter {
       wallet: PublicKey
       percent: number
     }[]
-  ): Promise<string> {
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }> {
     const pool = getPool(inputMint, outputMint)
 
     const feeAmount =
@@ -349,9 +421,9 @@ export class PumpSwapAdapter implements IDEXAdapter {
 
     addFeeToTx(tx, wallet.publicKey, feeAmount, serviceFee, referralsFee)
 
-    const sig = await sendVtx(wallet, tx, [wallet], true)
+    const result = await sendVtx(wallet, tx, [wallet], true)
 
-    return sig
+    return result
   }
   buyIx(
     wallet: PublicKey,
@@ -382,7 +454,13 @@ export class PumpSwapAdapter implements IDEXAdapter {
     amountIn: bigint,
     amountOut: bigint,
     slippage: number
-  ): Promise<string> {
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }> {
     const pool = getPool(inputMint, outputMint)
 
     const prepareWsol = await prepareWsolSwapInstructions(wallet.publicKey, 0n)
@@ -410,9 +488,9 @@ export class PumpSwapAdapter implements IDEXAdapter {
       tx.add(...prepareWsol.instructionParams.endInstructions)
     }
 
-    const sig = await sendVtx(wallet, tx, [wallet], true)
+    const result = await sendVtx(wallet, tx, [wallet], true)
 
-    return sig
+    return result
 
     // throw new Error('Method not implemented.')
   }
@@ -424,7 +502,13 @@ export class PumpSwapAdapter implements IDEXAdapter {
     amountIn: bigint,
     amountOut: bigint,
     slippage: number
-  ): Promise<string> {
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }> {
     const pool = getPool(inputMint, outputMint)
 
     const prepareWsol = await prepareWsolSwapInstructions(
@@ -480,9 +564,9 @@ export class PumpSwapAdapter implements IDEXAdapter {
       tx.add(...prepareWsol.instructionParams.endInstructions)
     }
 
-    const sig = await sendVtx(wallet, tx, [wallet], true)
+    const result = await sendVtx(wallet, tx, [wallet], true)
 
-    return sig
+    return result
   }
 
   async swap(
@@ -490,7 +574,13 @@ export class PumpSwapAdapter implements IDEXAdapter {
     toToken: string,
     amount: number,
     slippage: number
-  ): Promise<string> {
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }> {
     throw new Error('Method not implemented.')
   }
 
