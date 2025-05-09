@@ -5,7 +5,7 @@ import {
   TransactionMessage,
   VersionedTransaction,
 } from '@solana/web3.js'
-import { getSolanaConnection } from '../helpers/solana'
+import { getSolanaConnection } from '..'
 
 export async function sendVtx(
   payer: Keypair,
