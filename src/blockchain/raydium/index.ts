@@ -1,7 +1,6 @@
 import { Raydium } from '@raydium-io/raydium-sdk-v2'
-import { getSolanaConnection } from '../../helpers/solana'
+import { getSolanaConnection } from '../..'
 
-export * from './spaw'
 export * from './types'
 
 export let raydium: Raydium
