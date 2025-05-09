@@ -699,27 +699,22 @@ function addFeeToTx(
   tx: Transaction,
   from: PublicKey,
   feeAmount: bigint,
-  serviceFee: {
+  service: {
     wallet: PublicKey
     percent: number
   },
-  referralsFee: {
+  referrals: {
     wallet: PublicKey
     percent: number
   }[]
 ) {
   if (feeAmount > 0n) {
-    tx.add(
-      SystemProgram.transfer({
-        fromPubkey: from,
-        toPubkey: serviceFee.wallet,
-        lamports: feeAmount,
-      })
-    )
-
-    for (const referral of referralsFee) {
+    let serviceFee = feeAmount
+    for (const referral of referrals) {
       const amount =
         (feeAmount * BigInt(Math.floor(referral.percent * 100))) / PERCENT_BPS
+
+      serviceFee -= amount
 
       if (amount > 0n) {
         tx.add(
@@ -730,6 +725,16 @@ function addFeeToTx(
           })
         )
       }
+    }
+
+    if (serviceFee > 0n) {
+      tx.add(
+        SystemProgram.transfer({
+          fromPubkey: from,
+          toPubkey: service.wallet,
+          lamports: serviceFee,
+        })
+      )
     }
   }
 }
