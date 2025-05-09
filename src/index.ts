@@ -229,6 +229,13 @@ export class PumpSwapAdapter implements IDEXAdapter {
 
     let minAmountOut = amountOut - feeAmount
 
+    console.log('sell', {
+      input: amountIn,
+      minAmountOut,
+      mint: inputMint,
+      slippage,
+    })
+
     const swapIx = pumpSwap.sellIx({
       poolKeys: {
         poolId: pool.id,
@@ -289,6 +296,13 @@ export class PumpSwapAdapter implements IDEXAdapter {
     if (amountOut == 0n) {
       amountOut = await getBuyAmountOut(outputMint, amountIn, slippage)
     }
+
+    console.log('buy', {
+      input: amountIn,
+      amountOut,
+      mint: outputMint,
+      slippage,
+    })
 
     const swapIx = pumpSwap.buyIx({
       poolKeys: {
