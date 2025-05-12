@@ -1,8 +1,8 @@
 import {
-  BuyQuoteInputResult,
   getPumpAmmProgram,
   Pool,
   poolPda,
+  PumpAmm,
   pumpPoolAuthorityPda,
   SellBaseInputResult,
 } from '@pump-fun/pump-swap-sdk'
@@ -16,12 +16,13 @@ import {
   coinCreatorVaultAuthorityPda,
   PROGRAM_ID,
 } from '../instructions/pumpSwap'
+import { Program } from '@coral-xyz/anchor'
 
 const PECISSIONS = new BN(1_000_000_000)
 
 const WSOL_MINT_STR = WSOLMint + ''
 
-const PUMP_AMM_PROGRMAM = getPumpAmmProgram(getSolanaConnection())
+let PUMP_AMM_PROGRMAM_ANCHOR: Program<PumpAmm>
 
 export const POOLS: {
   [key: string]: {
@@ -190,13 +191,13 @@ export async function getPool(intputMint: PublicKey, outputMint: PublicKey) {
 
     const connection = getSolanaConnection()
 
-    const program = getPumpAmmProgram(connection, PROGRAM_ID + '')
+    if (!PUMP_AMM_PROGRMAM_ANCHOR) {
+      PUMP_AMM_PROGRMAM_ANCHOR = getPumpAmmProgram(connection, PROGRAM_ID + '')
+    }
 
-    const poolAccountInfo = await connection.getAccountInfo(
-      new PublicKey('42Afmb3MaD2g1nebdwQdT9sm8fcXycx2UKd6APRU4yZz')
-    )
+    const poolAccountInfo = await connection.getAccountInfo(new PublicKey(id))
 
-    const poolData = program.coder.accounts.decode<Pool>(
+    const poolData = PUMP_AMM_PROGRMAM_ANCHOR.coder.accounts.decode<Pool>(
       'pool',
       poolAccountInfo!!.data
     )
