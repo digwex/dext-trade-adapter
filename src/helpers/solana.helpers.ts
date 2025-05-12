@@ -22,7 +22,7 @@ export async function prepareWsolSwapInstructions(
   wallet: PublicKey,
   amountWSol: bigint
 ): Promise<{
-  account: PublicKey
+  ata: PublicKey
   instructionParams: {
     instructions: TransactionInstruction[]
     endInstructions: TransactionInstruction[]
@@ -59,20 +59,9 @@ export async function prepareWsolSwapInstructions(
     )
 
     instructionTypes.push(InstructionType.InitAccount)
+  }
 
-    const balanceNeeded = 2039280n
-
-    // console.log(balanceNeeded)
-
-    instructions.push(
-      SystemProgram.transfer({
-        fromPubkey: wallet,
-        toPubkey: ata,
-        lamports: balanceNeeded > amountWSol ? balanceNeeded : amountWSol,
-      })
-    )
-    instructionTypes.push(InstructionType.TransferAmount)
-  } else if (amountWSol > 0n) {
+  if (amountWSol > 0n) {
     instructions.push(
       SystemProgram.transfer({
         fromPubkey: wallet,
@@ -83,7 +72,7 @@ export async function prepareWsolSwapInstructions(
     instructionTypes.push(InstructionType.TransferAmount)
   }
 
-  if (!accountInfo) {
+  if (!accountInfo || amountWSol > 0n) {
     // Step 5: Sync the native token balance (required to mark as WSOL)
     instructions.push(createSyncNativeInstruction(ata, TOKEN_PROGRAM_ID))
     instructionTypes.push('MarkWSOL')
@@ -99,7 +88,7 @@ export async function prepareWsolSwapInstructions(
   )
 
   return {
-    account: ata,
+    ata,
     instructionParams: {
       instructions,
       endInstructions,

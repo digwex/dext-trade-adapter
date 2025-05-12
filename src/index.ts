@@ -291,7 +291,8 @@ export class PumpSwapAdapter implements IDEXAdapter {
     }
 
     const feeAmount =
-      (amountOut * BigInt(Math.floor(serviceFee.percent * 100))) / PERCENT_BPS // 1e6 * 1.5 * 100 / 10000
+      (amountOut * BigInt(Math.floor(serviceFee.percent * 100))) / PERCENT_BPS +
+      890880n * BigInt(referralsFee.length) // 1e6 * 1.5 * 100 / 10000
 
     let minAmountOut = amountOut - feeAmount
 
@@ -356,7 +357,8 @@ export class PumpSwapAdapter implements IDEXAdapter {
     const pool = getPool(inputMint, outputMint)
 
     const feeAmount =
-      (amountIn * BigInt(Math.floor(serviceFee.percent * 100))) / PERCENT_BPS // 1e6 * 1.5 * 100 / 10000
+      (amountIn * BigInt(Math.floor(serviceFee.percent * 100))) / PERCENT_BPS +
+      890880n * BigInt(referralsFee.length) // 1e6 * 1.5 * 100 / 10000
 
     amountIn -= feeAmount
 
@@ -683,7 +685,7 @@ export class RetailStrategy implements ISwapStrategy {
   }
 }
 
-let getSolanaConnectionImpl: () => Connection = () => {
+export let getSolanaConnectionImpl: () => Connection = () => {
   throw new Error('getSolanaConnection not initialized')
 }
 
@@ -708,31 +710,34 @@ function addFeeToTx(
     percent: number
   }[]
 ) {
-  if (feeAmount > 0n) {
-    let serviceFee = feeAmount
-    for (const referral of referrals) {
-      const amount =
-        (feeAmount * BigInt(Math.floor(referral.percent * 100))) / PERCENT_BPS
+  console.log('referral', referrals)
 
-      serviceFee -= amount
+  if (feeAmount > 0n) {
+    let amount = feeAmount
+
+    for (const referral of referrals) {
+      amount =
+        (amount * BigInt(Math.floor(referral.percent * 100))) / PERCENT_BPS
+
+      feeAmount -= amount
 
       if (amount > 0n) {
         tx.add(
           SystemProgram.transfer({
             fromPubkey: from,
             toPubkey: referral.wallet,
-            lamports: amount,
+            lamports: amount + 890880n,
           })
         )
       }
     }
 
-    if (serviceFee > 0n) {
+    if (feeAmount > 0n) {
       tx.add(
         SystemProgram.transfer({
           fromPubkey: from,
           toPubkey: service.wallet,
-          lamports: serviceFee,
+          lamports: feeAmount,
         })
       )
     }

@@ -40,20 +40,36 @@ export async function sendVtx(
 
   vTx.sign(signers)
 
-  const simulate = await solanaConnection.simulateTransaction(vTx)
+  // const simulate = await solanaConnection.simulateTransaction(vTx)
 
-  if (simulate.value.err) {
-    return {
-      error: {
-        msg: simulate.value.err.toString(),
-        type: 1,
-      },
-    }
-  }
+  // if (simulate.value.err) {
+  //   console.log('err', simulate.value.err)
+  //   // console.log('logs', simulate.value.logs)
+  //   // console.log('return data', simulate.value.returnData)
+
+  //   return {
+  //     error: {
+  //       msg:
+  //         typeof simulate.value.err === 'string'
+  //           ? simulate.value.err
+  //           : extractErrorMessage(simulate.value.logs ?? []),
+  //       type: 1,
+  //     },
+  //   }
+  // }
 
   const result = await solanaConnection.sendTransaction(vTx)
 
   return {
     signature: result + '',
   }
+}
+
+function extractErrorMessage(logs: string[]): string {
+  const errorLine = logs.find((line) => line.includes('Error Message:'))
+
+  if (!errorLine) return 'Unknown error'
+
+  const match = errorLine.match(/Error Message:\s*(.+)$/)
+  return match ? match[1].trim() : 'Unknown error'
 }
