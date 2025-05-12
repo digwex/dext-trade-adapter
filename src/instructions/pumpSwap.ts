@@ -84,6 +84,7 @@ export function buyIx({
     qouteMint: PublicKey
     poolBaseAta: PublicKey
     poolQouteAta: PublicKey
+    coinCreatorVaultAuthority: PublicKey
   }
   userKeys: { payer: Keypair }
   maxAmountIn: any
@@ -116,6 +117,15 @@ export function buyIx({
 
   const keys = []
 
+  // const coinCreatorVaultAuthority = coinCreatorVaultAuthorityPda(coinCreator)
+
+  const coinCreatorVaultAta = getAssociatedTokenAddressSync(
+    poolKeys.qouteMint,
+    poolKeys.coinCreatorVaultAuthority,
+    true,
+    TOKEN_PROGRAM_ID
+  )
+
   keys.push(
     accountMeta({
       pubkey: poolKeys.poolId,
@@ -144,7 +154,12 @@ export function buyIx({
     accountMeta({ pubkey: SystemProgram.programId, isWritable: false }),
     accountMeta({ pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isWritable: false }),
     accountMeta({ pubkey: PUMP_AMM_EVENT_AUTORITY, isWritable: false }),
-    accountMeta({ pubkey: PROGRAM_ID, isWritable: false })
+    accountMeta({ pubkey: PROGRAM_ID, isWritable: false }),
+    accountMeta({ pubkey: coinCreatorVaultAta, isWritable: true }),
+    accountMeta({
+      pubkey: poolKeys.coinCreatorVaultAuthority,
+      isWritable: false,
+    })
   )
 
   return new TransactionInstruction({
@@ -166,6 +181,7 @@ export function sellIx({
     qouteMint: PublicKey
     poolBaseAta: PublicKey
     poolQouteAta: PublicKey
+    coinCreatorVaultAuthority: PublicKey
     // feeRecipient: PublicKey
     // feeRecipientAta: PublicKey
   }
@@ -197,6 +213,13 @@ export function sellIx({
     userKeys.payer.publicKey
   )
 
+  const coinCreatorVaultAta = getAssociatedTokenAddressSync(
+    poolKeys.qouteMint,
+    poolKeys.coinCreatorVaultAuthority,
+    true,
+    TOKEN_PROGRAM_ID
+  )
+
   const keys = []
 
   keys.push(
@@ -226,7 +249,12 @@ export function sellIx({
     accountMeta({ pubkey: SystemProgram.programId, isWritable: false }),
     accountMeta({ pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isWritable: false }),
     accountMeta({ pubkey: PUMP_AMM_EVENT_AUTORITY, isWritable: false }),
-    accountMeta({ pubkey: PROGRAM_ID, isWritable: false })
+    accountMeta({ pubkey: PROGRAM_ID, isWritable: false }),
+    accountMeta({ pubkey: coinCreatorVaultAta, isWritable: true }),
+    accountMeta({
+      pubkey: poolKeys.coinCreatorVaultAuthority,
+      isWritable: false,
+    })
   )
 
   return new TransactionInstruction({
@@ -345,4 +373,12 @@ export function getKeys(
     accountMeta({ pubkey: PUMP_AMM_EVENT_AUTORITY, isWritable: false }),
     accountMeta({ pubkey: PROGRAM_ID, isWritable: false }),
   ]
+}
+
+export function coinCreatorVaultAuthorityPda(coinCreator: PublicKey) {
+  const [coinCreatorVaultAuthority] = PublicKey.findProgramAddressSync(
+    [Buffer.from('creator_vault'), coinCreator.toBuffer()],
+    PROGRAM_ID
+  )
+  return coinCreatorVaultAuthority
 }

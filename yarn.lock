@@ -402,10 +402,10 @@
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
-"@pump-fun/pump-swap-sdk@^0.0.1-beta.23":
-  version "0.0.1-beta.23"
-  resolved "https://registry.yarnpkg.com/@pump-fun/pump-swap-sdk/-/pump-swap-sdk-0.0.1-beta.23.tgz#42c75b2ad2bbc53e6f1ae427167019ea66ad7d9a"
-  integrity sha512-crO1WfBeeN9hnmIWvpwm5D0VVLPQSoFfN0uKjC4R1U+kO1AF4B9t5+aVQNcfsd4sRzvLfbvCDs2JFyRzjBelVg==
+"@pump-fun/pump-swap-sdk@^0.0.1-beta.25":
+  version "0.0.1-beta.25"
+  resolved "https://registry.yarnpkg.com/@pump-fun/pump-swap-sdk/-/pump-swap-sdk-0.0.1-beta.25.tgz#edd70af97acef6ce13978c9a3852d232e0a18afe"
+  integrity sha512-/HaTnlVPsM8WFCo1zVK5BHVU/SFdsg4QOJXXayINRv184D4PhgyWfNClL7vsoXGqC1xG8wJ97E+LzxVLiSQN/A==
   dependencies:
     "@coral-xyz/anchor" "^0.31.1"
     "@solana/spl-token" "^0.4.9"

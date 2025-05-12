@@ -282,7 +282,7 @@ export class PumpSwapAdapter implements IDEXAdapter {
       msg: string
     }
   }> {
-    const pool = getPool(inputMint, outputMint)
+    const pool = await getPool(inputMint, outputMint)
 
     const prepareWsol = await prepareWsolSwapInstructions(wallet.publicKey, 0n)
 
@@ -310,6 +310,7 @@ export class PumpSwapAdapter implements IDEXAdapter {
         qouteMint: outputMint,
         poolBaseAta: pool.baseAta,
         poolQouteAta: pool.quoteAta,
+        coinCreatorVaultAuthority: pool.coinCreatorVaultAuthority,
       },
       userKeys: {
         payer: wallet,
@@ -354,7 +355,7 @@ export class PumpSwapAdapter implements IDEXAdapter {
       msg: string
     }
   }> {
-    const pool = getPool(inputMint, outputMint)
+    const pool = await getPool(inputMint, outputMint)
 
     const feeAmount =
       (amountIn * BigInt(Math.floor(serviceFee.percent * 100))) / PERCENT_BPS +
@@ -385,6 +386,7 @@ export class PumpSwapAdapter implements IDEXAdapter {
         qouteMint: inputMint,
         poolBaseAta: pool.baseAta,
         poolQouteAta: pool.quoteAta,
+        coinCreatorVaultAuthority: pool.coinCreatorVaultAuthority,
       },
       userKeys: {
         payer: wallet,
@@ -463,7 +465,7 @@ export class PumpSwapAdapter implements IDEXAdapter {
       msg: string
     }
   }> {
-    const pool = getPool(inputMint, outputMint)
+    const pool = await getPool(inputMint, outputMint)
 
     const prepareWsol = await prepareWsolSwapInstructions(wallet.publicKey, 0n)
 
@@ -474,6 +476,7 @@ export class PumpSwapAdapter implements IDEXAdapter {
         qouteMint: outputMint,
         poolBaseAta: pool.baseAta,
         poolQouteAta: pool.quoteAta,
+        coinCreatorVaultAuthority: (await pool).coinCreatorVaultAuthority,
       },
       userKeys: {
         payer: wallet,
@@ -511,7 +514,7 @@ export class PumpSwapAdapter implements IDEXAdapter {
       msg: string
     }
   }> {
-    const pool = getPool(inputMint, outputMint)
+    const pool = await getPool(inputMint, outputMint)
 
     const prepareWsol = await prepareWsolSwapInstructions(
       wallet.publicKey,
@@ -529,6 +532,7 @@ export class PumpSwapAdapter implements IDEXAdapter {
         qouteMint: inputMint,
         poolBaseAta: pool.baseAta,
         poolQouteAta: pool.quoteAta,
+        coinCreatorVaultAuthority: pool.coinCreatorVaultAuthority,
       },
       userKeys: {
         payer: wallet,

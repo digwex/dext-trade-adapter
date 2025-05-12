@@ -1,6 +1,6 @@
 {
   "name": "@digwex/dext-trade-adapter",
-  "version": "0.0.29",
+  "version": "0.0.30",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -20,7 +20,7 @@
     "pub": "yarn build && npm pack && npm publish"
   },
   "dependencies": {
-    "@pump-fun/pump-swap-sdk": "^0.0.1-beta.23",
+    "@pump-fun/pump-swap-sdk": "^0.0.1-beta.25",
     "@raydium-io/raydium-sdk-v2": "^0.1.128-alpha",
     "@solana/web3.js": "^1.98.0",
     "bn.js": "^5.2.2"

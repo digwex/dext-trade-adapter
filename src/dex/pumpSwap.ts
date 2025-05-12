@@ -1,5 +1,7 @@
 import {
   BuyQuoteInputResult,
+  getPumpAmmProgram,
+  Pool,
   poolPda,
   pumpPoolAuthorityPda,
   SellBaseInputResult,
@@ -10,10 +12,16 @@ import { getAssociatedTokenAddressSync } from '@solana/spl-token'
 import { PublicKey } from '@solana/web3.js'
 import BN from 'bn.js'
 import { getSolanaConnection } from '..'
+import {
+  coinCreatorVaultAuthorityPda,
+  PROGRAM_ID,
+} from '../instructions/pumpSwap'
 
 const PECISSIONS = new BN(1_000_000_000)
 
 const WSOL_MINT_STR = WSOLMint + ''
+
+const PUMP_AMM_PROGRMAM = getPumpAmmProgram(getSolanaConnection())
 
 export const POOLS: {
   [key: string]: {
@@ -22,6 +30,7 @@ export const POOLS: {
     quoteAta: PublicKey
     baseMint: PublicKey
     quoteMint: PublicKey
+    coinCreatorVaultAuthority: PublicKey
   }
 } = {}
 
@@ -166,7 +175,7 @@ export function sellBaseInputInternal(
   }
 }
 
-export function getPool(intputMint: PublicKey, outputMint: PublicKey) {
+export async function getPool(intputMint: PublicKey, outputMint: PublicKey) {
   const inputMintStr = intputMint + ''
   const outputMintStr = outputMint + ''
 
@@ -179,6 +188,23 @@ export function getPool(intputMint: PublicKey, outputMint: PublicKey) {
     const poolAuthority = pumpPoolAuthorityPda(mint)
     const id = poolPda(0, poolAuthority[0], mint, WSOLMint)
 
+    const connection = getSolanaConnection()
+
+    const program = getPumpAmmProgram(connection, PROGRAM_ID + '')
+
+    const poolAccountInfo = await connection.getAccountInfo(
+      new PublicKey('42Afmb3MaD2g1nebdwQdT9sm8fcXycx2UKd6APRU4yZz')
+    )
+
+    const poolData = program.coder.accounts.decode<Pool>(
+      'pool',
+      poolAccountInfo!!.data
+    )
+
+    const coinCreatorVaultAuthority = coinCreatorVaultAuthorityPda(
+      poolData.coinCreator
+    )
+
     const poolBaseAta = getAssociatedTokenAddressSync(mint, id[0], true)
     const poolQuotaAta = getAssociatedTokenAddressSync(WSOLMint, id[0], true)
 
@@ -188,6 +214,7 @@ export function getPool(intputMint: PublicKey, outputMint: PublicKey) {
       quoteMint: WSOLMint,
       baseAta: poolBaseAta,
       quoteAta: poolQuotaAta,
+      coinCreatorVaultAuthority,
     }
 
     POOLS[baseMint] = pool
@@ -267,7 +294,7 @@ export async function getBuyAmountOut(
   slippage: number
 ) {
   const connection = getSolanaConnection()
-  const info = getPool(mint, WSOLMint)
+  const info = await getPool(mint, WSOLMint)
 
   const [baseBalance, quoteBalance] = await Promise.all([
     connection.getTokenAccountBalance(info.baseAta),
@@ -297,7 +324,7 @@ export async function getSellAmountOut(
   slippage: number
 ) {
   const connection = getSolanaConnection()
-  const info = getPool(mint, WSOLMint)
+  const info = await getPool(mint, WSOLMint)
 
   const [baseBalance, quoteBalance] = await Promise.all([
     connection.getTokenAccountBalance(info.baseAta),
