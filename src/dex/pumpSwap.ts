@@ -195,7 +195,7 @@ export async function getPool(intputMint: PublicKey, outputMint: PublicKey) {
       PUMP_AMM_PROGRMAM_ANCHOR = getPumpAmmProgram(connection, PROGRAM_ID + '')
     }
 
-    const poolAccountInfo = await connection.getAccountInfo(new PublicKey(id))
+    const poolAccountInfo = await connection.getAccountInfo(id[0])
 
     const poolData = PUMP_AMM_PROGRMAM_ANCHOR.coder.accounts.decode<Pool>(
       'pool',
