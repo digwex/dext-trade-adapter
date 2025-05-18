@@ -11,12 +11,14 @@ import {
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token'
 
-import { struct, u64, u8 } from './mashmallow'
 import {
   accountMeta,
   jsonInfo2PoolKeys,
   parseBigNumberish,
+  struct,
   SwapFixedInInstructionParamsV4,
+  u64,
+  u8,
 } from '@raydium-io/raydium-sdk-v2'
 import BN from 'bn.js'
 

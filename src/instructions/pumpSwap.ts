@@ -21,10 +21,10 @@ import {
 import {
   accountMeta,
   parseBigNumberish,
+  struct,
+  u64,
   WSOLMint,
 } from '@raydium-io/raydium-sdk-v2'
-
-import { struct, u64 } from './mashmallow'
 
 export const PROGRAM_ID = new PublicKey(
   'pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA'
