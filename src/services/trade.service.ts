@@ -1,13 +1,14 @@
 import {
   ComputeBudgetProgram,
+  Connection,
   Keypair,
   Transaction,
   TransactionMessage,
   VersionedTransaction,
 } from '@solana/web3.js'
-import { getSolanaConnection } from '..'
 
 export async function sendVtx(
+  connection: Connection,
   payer: Keypair,
   tx: Transaction,
   signers: Keypair[],
@@ -19,8 +20,7 @@ export async function sendVtx(
     msg: string
   }
 }> {
-  const solanaConnection = getSolanaConnection()
-  const blockHash = await solanaConnection.getLatestBlockhash()
+  const blockHash = await connection.getLatestBlockhash()
 
   const messageV0 = new TransactionMessage({
     payerKey: payer.publicKey,
@@ -58,7 +58,7 @@ export async function sendVtx(
   //   }
   // }
 
-  const result = await solanaConnection.sendTransaction(vTx)
+  const result = await connection.sendTransaction(vTx)
 
   return {
     signature: result + '',

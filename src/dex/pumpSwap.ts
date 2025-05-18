@@ -9,9 +9,8 @@ import {
 
 import { WSOLMint } from '@raydium-io/raydium-sdk-v2'
 import { getAssociatedTokenAddressSync } from '@solana/spl-token'
-import { PublicKey } from '@solana/web3.js'
+import { Connection, PublicKey } from '@solana/web3.js'
 import BN from 'bn.js'
-import { getSolanaConnection } from '..'
 import {
   coinCreatorVaultAuthorityPda,
   PROGRAM_ID,
@@ -176,7 +175,11 @@ export function sellBaseInputInternal(
   }
 }
 
-export async function getPool(intputMint: PublicKey, outputMint: PublicKey) {
+export async function getPool(
+  connection: Connection,
+  intputMint: PublicKey,
+  outputMint: PublicKey
+) {
   const inputMintStr = intputMint + ''
   const outputMintStr = outputMint + ''
 
@@ -188,8 +191,6 @@ export async function getPool(intputMint: PublicKey, outputMint: PublicKey) {
     const mint = new PublicKey(baseMint)
     const poolAuthority = pumpPoolAuthorityPda(mint)
     const id = poolPda(0, poolAuthority[0], mint, WSOLMint)
-
-    const connection = getSolanaConnection()
 
     if (!PUMP_AMM_PROGRMAM_ANCHOR) {
       PUMP_AMM_PROGRMAM_ANCHOR = getPumpAmmProgram(connection, PROGRAM_ID + '')
@@ -290,12 +291,12 @@ export async function getPool(intputMint: PublicKey, outputMint: PublicKey) {
 // }
 
 export async function getBuyAmountOut(
+  connection: Connection,
   mint: PublicKey,
   amountIn: bigint,
   slippage: number
 ) {
-  const connection = getSolanaConnection()
-  const info = await getPool(mint, WSOLMint)
+  const info = await getPool(connection, mint, WSOLMint)
 
   const [baseBalance, quoteBalance] = await Promise.all([
     connection.getTokenAccountBalance(info.baseAta),
@@ -320,12 +321,12 @@ export async function getBuyAmountOut(
 }
 
 export async function getSellAmountOut(
+  connection: Connection,
   mint: PublicKey,
   amountIn: bigint,
   slippage: number
 ) {
-  const connection = getSolanaConnection()
-  const info = await getPool(mint, WSOLMint)
+  const info = await getPool(connection, mint, WSOLMint)
 
   const [baseBalance, quoteBalance] = await Promise.all([
     connection.getTokenAccountBalance(info.baseAta),

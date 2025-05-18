@@ -1,4 +1,3 @@
-import { raydium } from './blockchain/raydium'
 import {
   Connection,
   Keypair,
@@ -18,8 +17,11 @@ import {
   getAccount,
   getAssociatedTokenAddressSync,
 } from '@solana/spl-token'
-import { initRaydiumSdk } from './blockchain/raydium'
 import { prepareWsolSwapInstructions } from './helpers/solana.helpers'
+import { IPoolCache, RaydiumPool, RaydiumPoolType } from './dex/pool-cache'
+import { RaydiumAmm } from './dex/raydium/amm/raydium-amm'
+import { RaydiumCpmm } from './dex/raydium/cpmm/raydium-cpmm'
+import { Raydium } from '@raydium-io/raydium-sdk-v2'
 
 const PERCENT_BPS = 10_000n
 
@@ -146,37 +148,21 @@ export interface IDEXAdapter {
 }
 
 export class RaydiumAdapter implements IDEXAdapter {
-  buyWithFees(
-    wallet: Keypair,
-    inputMint: PublicKey,
-    outputMint: PublicKey,
-    amountIn: bigint,
-    amountOut: bigint,
-    slippage: number
-  ): Promise<{
-    signature?: string
-    error?: {
-      type: number
-      msg: string
+  private readonly handlers: Record<
+    RaydiumPoolType,
+    RaydiumAmm | RaydiumCpmm | undefined
+  >
+  constructor(
+    private readonly cache: IPoolCache<RaydiumPool>,
+    private readonly raydium: Raydium,
+    private readonly getConnection: () => Connection
+  ) {
+    this.handlers = {
+      [RaydiumPoolType.AMM]: new RaydiumAmm(cache, raydium, getConnection),
+      [RaydiumPoolType.CPMM]: new RaydiumCpmm(cache, getConnection),
+      [RaydiumPoolType.AMM_STABLE]: undefined,
+      [RaydiumPoolType.CLMM]: undefined,
     }
-  }> {
-    throw new Error('Method not implemented.')
-  }
-  sellWithFees(
-    wallet: Keypair,
-    inputMint: PublicKey,
-    outputMint: PublicKey,
-    amountIn: bigint,
-    amountOut: bigint,
-    slippage: number
-  ): Promise<{
-    signature?: string
-    error?: {
-      type: number
-      msg: string
-    }
-  }> {
-    throw new Error('Method not implemented.')
   }
   buy(
     wallet: Keypair,
@@ -185,6 +171,30 @@ export class RaydiumAdapter implements IDEXAdapter {
     amountIn: bigint,
     amountOut: bigint,
     slippage: number
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }> {
+    throw new Error('Method not implemented.')
+  }
+  buyWithFees(
+    wallet: Keypair,
+    inputMint: PublicKey,
+    outputMint: PublicKey,
+    amountIn: bigint,
+    amountOut: bigint,
+    slippage: number,
+    serviceFee: {
+      wallet: PublicKey
+      percent: number
+    },
+    referralsFee: {
+      wallet: PublicKey
+      percent: number
+    }[]
   ): Promise<{
     signature?: string
     error?: {
@@ -210,6 +220,123 @@ export class RaydiumAdapter implements IDEXAdapter {
   }> {
     throw new Error('Method not implemented.')
   }
+  sellWithFees(
+    wallet: Keypair,
+    inputMint: PublicKey,
+    outputMint: PublicKey,
+    amountIn: bigint,
+    amountOut: bigint,
+    slippage: number,
+    serviceFee: {
+      wallet: PublicKey
+      percent: number
+    },
+    referralsFee: {
+      wallet: PublicKey
+      percent: number
+    }[]
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }> {
+    throw new Error('Method not implemented.')
+  }
+  swap(
+    fromToken: string,
+    toToken: string,
+    amount: number,
+    slippage: number,
+    by: 'sell' | 'buy'
+  ): Promise<{
+    signature?: string
+    error?: {
+      type: number
+      msg: string
+    }
+  }> {
+    throw new Error('Method not implemented.')
+  }
+  getQuote(
+    fromToken: string,
+    toToken: string,
+    amount: number,
+    by: 'sell' | 'buy'
+  ): Promise<bigint> {
+    throw new Error('Method not implemented.')
+  }
+
+  getQuote_(
+    fromToken: PublicKey,
+    toToken: PublicKey,
+    amount: bigint,
+    slippage: number
+  ): Promise<bigint> {
+    // get pool type
+    // const baseIn = inputMint === poolInfo.mintA.address
+    // get pool from ccache
+    // get reserves
+    // const swapResult = CurveCalculator.swap(
+    //   inputAmount,
+    //   baseIn ? rpcData.baseReserve : rpcData.quoteReserve,
+    //   baseIn ? rpcData.quoteReserve : rpcData.baseReserve,
+    //   rpcData.configInfo!.tradeFeeRate
+    // )
+    throw new Error('Method not implemented.')
+  }
+  jupTx(
+    wallet: PublicKey,
+    inputMint: PublicKey,
+    outputMint: PublicKey,
+    amountIn: bigint,
+    amountOut: bigint
+  ): Promise<Transaction> {
+    throw new Error('Method not implemented.')
+  }
+
+  async swapByPool(
+    poolId: PublicKey,
+    wallet: PublicKey,
+    intputMint: PublicKey,
+    outputMint: PublicKey,
+    amountIn: bigint,
+    amountOut: bigint,
+    slippage: number
+  ): Promise<TransactionInstruction> {
+    // const cache = await this.cache.read(poolId)
+    // if (!cache) throw new Error(`Pool ${poolId.toBase58()} not found`)
+
+    // const handler = this.handlers[cache.type]
+
+    // if (!handler) throw new Error(`Unsupported pool type: ${cache.type}`)
+
+    // const pool = await getRaydiumPool(poolId, intputMint, outputMint, amountIn)
+
+    // const srcAta = getAssociatedTokenAddressSync(intputMint, wallet)
+    // const destAta = getAssociatedTokenAddressSync(intputMint, wallet)
+
+    // const swapIxs = await generateSwapInstruction(
+    //   intputMint,
+    //   outputMint,
+    //   {
+    //     wallet,
+    //     srcAta,
+    //     destAta,
+    //   },
+    //   pool.computeLayout,
+    //   pool.poolKeys
+    // )
+
+    // // get pool keys
+    // // prepate ata | prepare IX ??
+    // // get Ix
+
+    // return swapIxs[0]
+
+    throw new Error('Method not implemented.')
+  }
 
   buyIx(
     wallet: PublicKey,
@@ -218,6 +345,9 @@ export class RaydiumAdapter implements IDEXAdapter {
     amountIn: bigint,
     amountOut: bigint
   ): TransactionInstruction {
+    throw new Error('Method not implemented.')
+  }
+  rugIx(wallet: PublicKey, mint: PublicKey): TransactionInstruction {
     throw new Error('Method not implemented.')
   }
   sellIx(
@@ -229,28 +359,58 @@ export class RaydiumAdapter implements IDEXAdapter {
   ): TransactionInstruction {
     throw new Error('Method not implemented.')
   }
-  async getQuote(
-    fromToken: string,
-    toToken: string,
-    amount: number
-  ): Promise<bigint> {
+  retailBuyIx(
+    buyer: PublicKey,
+    collect: PublicKey,
+    mint: PublicKey,
+    fees: bigint,
+    wex?: {
+      lamports: bigint
+      index: number
+      owner: PublicKey
+    }
+  ): TransactionInstruction {
     throw new Error('Method not implemented.')
   }
+  retailSellIx(
+    seller: PublicKey,
+    mint: PublicKey,
+    amount: bigint,
+    wex?: {
+      lamports: bigint
+      index: number
+      owner: PublicKey
+    }
+  ): TransactionInstruction {
+    throw new Error('Method not implemented.')
+  }
+  buy_(
+    wallet: PublicKey,
+    inputMint: PublicKey,
+    outputMint: PublicKey,
+    amountIn: bigint,
+    amountOut: bigint
+  ): string {
+    return ''
+  }
+  sell_(
+    wallet: PublicKey,
+    inputMint: PublicKey,
+    outputMint: PublicKey,
+    amountIn: bigint,
+    amountOut: bigint
+  ): string {
+    return ''
+  }
 
-  async swap(
+  async swap_(
     fromToken: string,
     toToken: string,
     amount: number,
     slippage: number
-  ): Promise<{
-    signature?: string
-    error?: {
-      type: number
-      msg: string
-    }
-  }> {
+  ): Promise<string> {
     // Генерация и отправка транзакции на Raydium
-    throw new Error('Method not implemented.')
+    return '0x123txhash'
   }
 
   async getPoolInfo(): Promise<any> {
@@ -260,6 +420,8 @@ export class RaydiumAdapter implements IDEXAdapter {
 }
 
 export class PumpSwapAdapter implements IDEXAdapter {
+  constructor(private readonly getConnection: () => Connection) {}
+
   async sellWithFees(
     wallet: Keypair,
     inputMint: PublicKey,
@@ -282,12 +444,23 @@ export class PumpSwapAdapter implements IDEXAdapter {
       msg: string
     }
   }> {
-    const pool = await getPool(inputMint, outputMint)
+    const connection = this.getConnection()
 
-    const prepareWsol = await prepareWsolSwapInstructions(wallet.publicKey, 0n)
+    const pool = await getPool(connection, inputMint, outputMint)
+
+    const prepareWsol = await prepareWsolSwapInstructions(
+      connection,
+      wallet.publicKey,
+      0n
+    )
 
     if (amountOut === 0n) {
-      amountOut = await getSellAmountOut(inputMint, amountIn, slippage)
+      amountOut = await getSellAmountOut(
+        connection,
+        inputMint,
+        amountIn,
+        slippage
+      )
     }
 
     const feeAmount =
@@ -329,7 +502,7 @@ export class PumpSwapAdapter implements IDEXAdapter {
 
     addFeeToTx(tx, wallet.publicKey, feeAmount, serviceFee, referralsFee)
 
-    const result = await sendVtx(wallet, tx, [wallet], true)
+    const result = await sendVtx(connection, wallet, tx, [wallet], true)
 
     return result
   }
@@ -355,7 +528,9 @@ export class PumpSwapAdapter implements IDEXAdapter {
       msg: string
     }
   }> {
-    const pool = await getPool(inputMint, outputMint)
+    const connection = this.getConnection()
+
+    const pool = await getPool(connection, inputMint, outputMint)
 
     const feeAmount =
       (amountIn * BigInt(Math.floor(serviceFee.percent * 100))) / PERCENT_BPS +
@@ -364,12 +539,18 @@ export class PumpSwapAdapter implements IDEXAdapter {
     amountIn -= feeAmount
 
     const prepareWsol = await prepareWsolSwapInstructions(
+      connection,
       wallet.publicKey,
       amountIn
     )
 
     if (amountOut == 0n) {
-      amountOut = await getBuyAmountOut(outputMint, amountIn, slippage)
+      amountOut = await getBuyAmountOut(
+        connection,
+        outputMint,
+        amountIn,
+        slippage
+      )
     }
 
     console.log('buy', {
@@ -402,7 +583,6 @@ export class PumpSwapAdapter implements IDEXAdapter {
     const ata = getAssociatedTokenAddressSync(outputMint, wallet.publicKey)
 
     try {
-      const connection = getSolanaConnection()
       await getAccount(connection, ata)
     } catch (e) {
       tx.add(
@@ -425,7 +605,7 @@ export class PumpSwapAdapter implements IDEXAdapter {
 
     addFeeToTx(tx, wallet.publicKey, feeAmount, serviceFee, referralsFee)
 
-    const result = await sendVtx(wallet, tx, [wallet], true)
+    const result = await sendVtx(connection, wallet, tx, [wallet], true)
 
     return result
   }
@@ -465,9 +645,15 @@ export class PumpSwapAdapter implements IDEXAdapter {
       msg: string
     }
   }> {
-    const pool = await getPool(inputMint, outputMint)
+    const connection = this.getConnection()
 
-    const prepareWsol = await prepareWsolSwapInstructions(wallet.publicKey, 0n)
+    const pool = await getPool(connection, inputMint, outputMint)
+
+    const prepareWsol = await prepareWsolSwapInstructions(
+      connection,
+      wallet.publicKey,
+      0n
+    )
 
     const swapIx = pumpSwap.sellIx({
       poolKeys: {
@@ -493,7 +679,7 @@ export class PumpSwapAdapter implements IDEXAdapter {
       tx.add(...prepareWsol.instructionParams.endInstructions)
     }
 
-    const result = await sendVtx(wallet, tx, [wallet], true)
+    const result = await sendVtx(connection, wallet, tx, [wallet], true)
 
     return result
 
@@ -514,15 +700,23 @@ export class PumpSwapAdapter implements IDEXAdapter {
       msg: string
     }
   }> {
-    const pool = await getPool(inputMint, outputMint)
+    const connection = this.getConnection()
+
+    const pool = await getPool(connection, inputMint, outputMint)
 
     const prepareWsol = await prepareWsolSwapInstructions(
+      connection,
       wallet.publicKey,
       amountIn
     )
 
     if (amountOut == 0n) {
-      amountOut = await getBuyAmountOut(outputMint, amountIn, slippage)
+      amountOut = await getBuyAmountOut(
+        connection,
+        outputMint,
+        amountIn,
+        slippage
+      )
     }
 
     const swapIx = pumpSwap.buyIx({
@@ -548,8 +742,6 @@ export class PumpSwapAdapter implements IDEXAdapter {
     const ata = getAssociatedTokenAddressSync(outputMint, wallet.publicKey)
 
     try {
-      const connection = getSolanaConnection()
-
       await getAccount(connection, ata)
     } catch (e) {
       tx.add(
@@ -570,7 +762,7 @@ export class PumpSwapAdapter implements IDEXAdapter {
       tx.add(...prepareWsol.instructionParams.endInstructions)
     }
 
-    const result = await sendVtx(wallet, tx, [wallet], true)
+    const result = await sendVtx(connection, wallet, tx, [wallet], true)
 
     return result
   }
@@ -601,15 +793,21 @@ export class PumpSwapAdapter implements IDEXAdapter {
 }
 
 export class DEXFactory {
-  static create(dex: 'raydium' | 'orca' | 'pumpswap'): IDEXAdapter {
+  static create<T>(
+    dex: 'raydium' | 'orca' | 'pumpswap',
+    cache: IPoolCache<T>,
+    getConnection: () => Connection,
+    raydium: Raydium
+  ): IDEXAdapter {
     switch (dex) {
       case 'pumpswap':
-        return new PumpSwapAdapter()
+        return new PumpSwapAdapter(getConnection)
       case 'raydium': {
-        if (!raydium) {
-          initRaydiumSdk()
-        }
-        return new RaydiumAdapter()
+        return new RaydiumAdapter(
+          cache as IPoolCache<RaydiumPool>,
+          raydium,
+          getConnection
+        )
       }
       // case 'orca':
       //   return new OrcaAdapter()
@@ -687,18 +885,6 @@ export class RetailStrategy implements ISwapStrategy {
 
     return ''
   }
-}
-
-export let getSolanaConnectionImpl: () => Connection = () => {
-  throw new Error('getSolanaConnection not initialized')
-}
-
-export function getSolanaConnection(): Connection {
-  return getSolanaConnectionImpl()
-}
-
-export function init(f: () => Connection) {
-  getSolanaConnectionImpl = f
 }
 
 function addFeeToTx(

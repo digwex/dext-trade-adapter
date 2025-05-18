@@ -6,6 +6,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token'
 import {
+  Connection,
   PublicKey,
   SystemProgram,
   TransactionInstruction,
@@ -16,9 +17,9 @@ import {
   InstructionType,
   WSOLMint,
 } from '@raydium-io/raydium-sdk-v2'
-import { getSolanaConnection } from '../'
 
 export async function prepareWsolSwapInstructions(
+  connection: Connection,
   wallet: PublicKey,
   amountWSol: bigint
 ): Promise<{
@@ -39,7 +40,6 @@ export async function prepareWsolSwapInstructions(
     TOKEN_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID
   )
-  const connection = getSolanaConnection()
   const accountInfo = await connection.getAccountInfo(ata)
 
   const instructions: TransactionInstruction[] = []
