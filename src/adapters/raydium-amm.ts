@@ -33,20 +33,26 @@ export class RaydiumAmmAdapter extends RaydiumAdapter implements IDEXAdapter {
   ): Promise<TransactionSignature> {
     await this.init();
 
-    const inputMint = new PublicKey(fromToken);
-    const outputMint = new PublicKey(toToken);
-    const pool = await this.getPool(inputMint, outputMint);
+    const tokenInMint = new PublicKey(fromToken);
+    const tokenOutMint = new PublicKey(toToken);
+    
+    const poolDetails = await this.findLiquidityPool(tokenInMint, tokenOutMint);
 
-    let poolInfo: ApiV3PoolInfoStandardItem | undefined = pool.poolInfo
-    let poolKeys: AmmV4Keys | undefined = pool.poolKeys
-    let rpcData: AmmRpcData = pool.poolRpcData
+    const { poolInfo, poolKeys, poolRpcData: rpcData } = poolDetails;
+    
+    const { baseReserve, quoteReserve, status } = {
+      baseReserve: rpcData.baseReserve,
+      quoteReserve: rpcData.quoteReserve,
+      status: rpcData.status.toNumber()
+    };
 
-    const [baseReserve, quoteReserve, status] = [rpcData.baseReserve, rpcData.quoteReserve, rpcData.status.toNumber()]
+    const isBaseTokenInput = tokenInMint.toString() === poolInfo.mintA.address;
+    
+    const [inputMintInfo, outputMintInfo] = isBaseTokenInput 
+      ? [poolInfo.mintA, poolInfo.mintB] 
+      : [poolInfo.mintB, poolInfo.mintA];
 
-    const baseIn = inputMint.toString() === poolInfo.mintA.address
-    const [mintIn, mintOut] = baseIn ? [poolInfo.mintA, poolInfo.mintB] : [poolInfo.mintB, poolInfo.mintA]
-
-    const out = this.raydium.liquidity.computeAmountOut({
+    const outputAmountData = this.raydium.liquidity.computeAmountOut({
       poolInfo: {
         ...poolInfo,
         baseReserve,
@@ -55,22 +61,22 @@ export class RaydiumAmmAdapter extends RaydiumAdapter implements IDEXAdapter {
         version: 4,
       },
       amountIn: new BN(amount.toString()),
-      mintIn: mintIn.address,
-      mintOut: mintOut.address,
+      mintIn: inputMintInfo.address,
+      mintOut: outputMintInfo.address,
       slippage: slippage / 100,
     });
 
-    this.raydium.setOwner(wallet)
+    this.raydium.setOwner(wallet);
 
     const { transaction } = await this.raydium.liquidity.swap({
       poolInfo,
       poolKeys,
       amountIn: new BN(amount.toString()),
-      amountOut: out.minAmountOut,
+      amountOut: outputAmountData.minAmountOut,
       fixedSide: 'in',
-      inputMint: mintIn.address,
+      inputMint: inputMintInfo.address,
       txVersion: RaydiumAdapter.txVersion,
-    })
+    });
 
     return await sendVtx(this.connection, wallet, transaction, [wallet], true);
   }
@@ -83,19 +89,26 @@ export class RaydiumAmmAdapter extends RaydiumAdapter implements IDEXAdapter {
   ): Promise<bigint> {
     await this.init();
 
-    const inputMint = new PublicKey(fromToken);
-    const outputMint = new PublicKey(toToken);
-    const pool = await this.getPool(inputMint, outputMint);
+    const tokenInMint = new PublicKey(fromToken);
+    const tokenOutMint = new PublicKey(toToken);
+    
+    const poolDetails = await this.findLiquidityPool(tokenInMint, tokenOutMint);
 
-    let poolInfo: ApiV3PoolInfoStandardItem | undefined = pool.poolInfo
-    let rpcData: AmmRpcData = pool.poolRpcData
+    const { poolInfo, poolRpcData: rpcData } = poolDetails;
+    
+    const { baseReserve, quoteReserve, status } = {
+      baseReserve: rpcData.baseReserve,
+      quoteReserve: rpcData.quoteReserve,
+      status: rpcData.status.toNumber()
+    };
 
-    const [baseReserve, quoteReserve, status] = [rpcData.baseReserve, rpcData.quoteReserve, rpcData.status.toNumber()]
+    const isBaseTokenInput = tokenInMint.toString() === poolInfo.mintA.address;
+    
+    const [inputMintInfo, outputMintInfo] = isBaseTokenInput 
+      ? [poolInfo.mintA, poolInfo.mintB] 
+      : [poolInfo.mintB, poolInfo.mintA];
 
-    const baseIn = inputMint.toString() === poolInfo.mintA.address
-    const [mintIn, mintOut] = baseIn ? [poolInfo.mintA, poolInfo.mintB] : [poolInfo.mintB, poolInfo.mintA]
-
-    const out = this.raydium.liquidity.computeAmountOut({
+    const outputAmountData = this.raydium.liquidity.computeAmountOut({
       poolInfo: {
         ...poolInfo,
         baseReserve,
@@ -104,76 +117,63 @@ export class RaydiumAmmAdapter extends RaydiumAdapter implements IDEXAdapter {
         version: 4,
       },
       amountIn: new BN(amount.toString()),
-      mintIn: mintIn.address,
-      mintOut: mintOut.address,
+      mintIn: inputMintInfo.address,
+      mintOut: outputMintInfo.address,
       slippage: slippage / 100,
     });
 
-    return BigInt(out.amountOut.toString());
+    return BigInt(outputAmountData.amountOut.toString());
   }
 
-  protected setConnection() {
+  protected initializeConnection(): void {
     this.connection = new Connection(this.rpc, 'confirmed');
   }
 
-  private async getPool(inputMint: PublicKey, outputMint: PublicKey) {
+  private async findLiquidityPool(tokenA: PublicKey, tokenB: PublicKey) {
     const raydium = await Raydium.load(this.raydiumLoadParams);
 
-    const baseFilter = {
-      filters: [
-        { dataSize: liquidityStateV4Layout.span },
-        {
-          memcmp: {
-            offset: liquidityStateV4Layout.offsetOf('baseMint'),
-            bytes: bs58.encode(Buffer.from(inputMint.toBytes())),
-          },
-        },
-        {
-          memcmp: {
-            offset: liquidityStateV4Layout.offsetOf('quoteMint'),
-            bytes: bs58.encode(Buffer.from(outputMint.toBytes())),
-          }
-        }
-      ],
-      encoding: 'base64',
-    };
+    const abDirectionFilter = this.createLiquidityPoolFilter(tokenA, tokenB);
+    
+    const baDirectionFilter = this.createLiquidityPoolFilter(tokenB, tokenA);
 
-    const quoteFilter = {
-      filters: [
-        { dataSize: liquidityStateV4Layout.span },
-        {
-          memcmp: {
-            offset: liquidityStateV4Layout.offsetOf('baseMint'),
-            bytes: bs58.encode(Buffer.from(outputMint.toBytes())),
-          },
-        },
-        {
-          memcmp: {
-            offset: liquidityStateV4Layout.offsetOf('quoteMint'),
-            bytes: bs58.encode(Buffer.from(inputMint.toBytes())),
-          }
-        }
-      ],
-      encoding: 'base64',
-    };
-
-    const [baseMatches, quoteMatches] = await Promise.all([
-      this.connection.getProgramAccounts(DEVNET_PROGRAM_ID.AmmV4, baseFilter),
-      this.connection.getProgramAccounts(DEVNET_PROGRAM_ID.AmmV4, quoteFilter),
+    const [abResults, baResults] = await Promise.all([
+      this.connection.getProgramAccounts(DEVNET_PROGRAM_ID.AmmV4, abDirectionFilter),
+      this.connection.getProgramAccounts(DEVNET_PROGRAM_ID.AmmV4, baDirectionFilter),
     ]);
 
-    const combined = new Map<string, typeof baseMatches[0]>();
+    const uniquePools = new Map<string, typeof abResults[0]>();
 
-    [...baseMatches, ...quoteMatches].forEach(acc => {
-      combined.set(acc.pubkey.toBase58(), acc);
+    [...abResults, ...baResults].forEach(account => {
+      uniquePools.set(account.pubkey.toBase58(), account);
     });
 
-    const ammPools = Array.from(combined.keys());
+    const poolIds = Array.from(uniquePools.keys());
 
-    if (ammPools.length === 0) {
-      throw new Error(`No Raydium AMM pool found for token pair ${inputMint.toBase58()} and ${outputMint.toBase58()}`);
+    if (poolIds.length === 0) {
+      throw new Error(`No Raydium AMM pool found for token pair ${tokenA.toBase58()} and ${tokenB.toBase58()}`);
     }
 
-    return await raydium.liquidity.getPoolInfoFromRpc({ poolId: ammPools[0]});
+    return await raydium.liquidity.getPoolInfoFromRpc({ poolId: poolIds[0] });
+  }
+
+  private createLiquidityPoolFilter(baseMint: PublicKey, quoteMint: PublicKey) {
+    return {
+      filters: [
+        { dataSize: liquidityStateV4Layout.span },
+        {
+          memcmp: {
+            offset: liquidityStateV4Layout.offsetOf('baseMint'),
+            bytes: bs58.encode(Buffer.from(baseMint.toBytes())),
+          },
+        },
+        {
+          memcmp: {
+            offset: liquidityStateV4Layout.offsetOf('quoteMint'),
+            bytes: bs58.encode(Buffer.from(quoteMint.toBytes())),
+          }
+        }
+      ],
+      encoding: 'base64',
+    };
   }
 }

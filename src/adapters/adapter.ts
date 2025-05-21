@@ -7,62 +7,64 @@ import {
 import { IDEXAdapter } from "../interfaces";
 
 export abstract class Adapter implements IDEXAdapter {
-  protected PERCENT_BPS = 10_000n;
-  // TODO: Refactor to get/set
+  // Constants
+  protected readonly PERCENT_BPS = 10_000n;
+  
+  // Service properties
   protected connection: any;
-  protected rpc: any;
+  protected rpc: string;
 
   protected constructor() {
     this.rpc = "https://api.devnet.solana.com";
-    this.setConnection();
+    this.initializeConnection();
   }
 
-  protected abstract setConnection(): void;
-
-  buy(
-    wallet: Keypair,
-    inputMint: PublicKey,
-    outputMint: PublicKey,
-    amount: bigint,
-    slippage: number
-  ): Promise<TransactionSignature> {
-    return this.swap(
-      wallet,
-      inputMint.toString(),
-      outputMint.toString(),
-      amount,
-      slippage,
-    );
-  }
-
-  sell(
-    wallet: Keypair,
-    inputMint: PublicKey,
-    outputMint: PublicKey,
-    amount: bigint,
-    slippage: number
-  ): Promise<TransactionSignature> {
-    return this.swap(
-      wallet,
-      outputMint.toString(),
-      inputMint.toString(),
-      amount,
-      slippage,
-    );
-  }
-
+  protected abstract initializeConnection(): void;
+  
   abstract getQuote(
-    fromToken: string,
-    toToken: string,
-    amount: bigint,
-    slippage: number,
+    fromToken: string, 
+    toToken: string, 
+    amount: bigint, 
+    slippage: number
   ): Promise<bigint>;
 
-  abstract swap (
+  abstract swap(
     wallet: Keypair,
     fromToken: string,
     toToken: string,
     amount: bigint,
-    slippage: number,
+    slippage: number
   ): Promise<TransactionSignature>;
+
+  buy = async (
+    wallet: Keypair,
+    inputMint: PublicKey,
+    outputMint: PublicKey,
+    amount: bigint,
+    slippage: number
+  ): Promise<TransactionSignature> => {
+    return this.swap(
+      wallet,
+      inputMint.toString(),
+      outputMint.toString(),
+      amount,
+      slippage
+    );
+  };
+
+  public sell = async (
+    wallet: Keypair,
+    inputMint: PublicKey,
+    outputMint: PublicKey,
+    amount: bigint,
+    slippage: number
+  ): Promise<TransactionSignature> => {
+    return this.swap(
+      wallet,
+      outputMint.toString(),
+      inputMint.toString(),
+      amount,
+      slippage
+    );
+  };
 }

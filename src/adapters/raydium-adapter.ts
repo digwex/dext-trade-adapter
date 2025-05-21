@@ -4,24 +4,27 @@ import { IDEXAdapter } from "../interfaces";
 import { Adapter } from "./adapter";
 
 export abstract class RaydiumAdapter extends Adapter implements IDEXAdapter {
-  static txVersion: TxVersion = TxVersion.V0;
+  // Static properties
+  static readonly txVersion: TxVersion = TxVersion.V0;
 
-  protected raydiumLoadParams: RaydiumLoadParams = {
-    connection: this.connection,
-    cluster: "devnet"
-  }
-
+  // Instance properties
   protected raydium!: Raydium;
+  
+  protected get raydiumLoadParams(): RaydiumLoadParams {
+    return {
+      connection: this.connection,
+      cluster: "devnet"
+    };
+  }
 
   protected constructor() {
     super();
   }
 
-  protected async init(): Promise<void> {
-    if(!this.raydium) {
-      this.raydium = await Raydium.load(this.raydiumLoadParams)
+  // Initialize Raydium SDK instance
+  protected init = async (): Promise<void> => {
+    if (!this.raydium) {
+      this.raydium = await Raydium.load(this.raydiumLoadParams);
     }
-    
-    return;
-  }
+  };
 }

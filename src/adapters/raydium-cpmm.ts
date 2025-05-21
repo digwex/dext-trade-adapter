@@ -34,135 +34,118 @@ export class RaydiumCpmmAdapter extends RaydiumAdapter implements IDEXAdapter {
   ): Promise<TransactionSignature> {
     await this.init();
 
-    const inputMint = new PublicKey(fromToken);
-    const outputMint = new PublicKey(toToken);
-    const pool = await this.getPool(inputMint, outputMint);
-
-    const poolInfo: ApiV3PoolInfoStandardItemCpmm = pool.poolInfo
-    const poolKeys: CpmmKeys | undefined = pool.poolKeys
-    const rpcData: CpmmRpcData = pool.rpcData
-
-    const baseIn = inputMint.toString() === poolInfo.mintA.address
-
-    const swapResult = CurveCalculator.swap(
+    const tokenIn = new PublicKey(fromToken);
+    const tokenOut = new PublicKey(toToken);
+    
+    const poolData = await this.fetchPoolData(tokenIn, tokenOut);
+    
+    const { poolInfo, poolKeys, rpcData } = poolData;
+    
+    const isBaseTokenIn = tokenIn.toString() === poolInfo.mintA.address;
+    
+    const swapCalculation = CurveCalculator.swap(
       new BN(amount.toString()),
-      baseIn ? rpcData.baseReserve : rpcData.quoteReserve,
-      baseIn ? rpcData.quoteReserve : rpcData.baseReserve,
+      isBaseTokenIn ? rpcData.baseReserve : rpcData.quoteReserve,
+      isBaseTokenIn ? rpcData.quoteReserve : rpcData.baseReserve,
       rpcData.configInfo!.tradeFeeRate
-    )
+    );
 
-    this.raydium.setOwner(wallet)
+    this.raydium.setOwner(wallet);
+    
     const { transaction } = await this.raydium.cpmm.swap({
       poolInfo,
       poolKeys,
       inputAmount: new BN(amount.toString()),
-      swapResult,
+      swapResult: swapCalculation,
       slippage: slippage / 100,
-      baseIn,
+      baseIn: isBaseTokenIn,
       txVersion: RaydiumAdapter.txVersion,
-    })
+    });
 
-    return await sendVtx(this.connection, wallet, transaction, [wallet], true)
+    return await sendVtx(this.connection, wallet, transaction, [wallet], true);
   }
 
   async getQuote(
     fromToken: string,
     toToken: string,
     amount: bigint,
+    slippage: number,
   ): Promise<bigint> {
-    const inputMint = new PublicKey(fromToken);
-    const outputMint = new PublicKey(toToken);
-    const pool = await this.getPool(inputMint, outputMint);
-
-    const poolInfo: ApiV3PoolInfoStandardItemCpmm = pool.poolInfo
-    const rpcData: CpmmRpcData = pool.rpcData
-
-    const baseIn = inputMint.toString() === poolInfo.mintA.address
-
-    const swapResult = CurveCalculator.swap(
+    const tokenIn = new PublicKey(fromToken);
+    const tokenOut = new PublicKey(toToken);
+    
+    const poolData = await this.fetchPoolData(tokenIn, tokenOut);
+    
+    const { poolInfo, rpcData } = poolData;
+    
+    const isBaseTokenIn = tokenIn.toString() === poolInfo.mintA.address;
+    
+    const swapCalculation = CurveCalculator.swap(
       new BN(amount.toString()),
-      baseIn ? rpcData.baseReserve : rpcData.quoteReserve,
-      baseIn ? rpcData.quoteReserve : rpcData.baseReserve,
+      isBaseTokenIn ? rpcData.baseReserve : rpcData.quoteReserve,
+      isBaseTokenIn ? rpcData.quoteReserve : rpcData.baseReserve,
       rpcData.configInfo!.tradeFeeRate
-    )
+    );
 
-    return BigInt(swapResult.destinationAmountSwapped.toString());
+    return BigInt(swapCalculation.destinationAmountSwapped.toString());
   }
 
-  protected setConnection() {
+  protected initializeConnection(): void {
     this.connection = new Connection(this.rpc, 'confirmed');
   }
 
-  private async getPool(inputMint: PublicKey, outputMint: PublicKey) {
+  private async fetchPoolData(tokenA: PublicKey, tokenB: PublicKey) {
     await this.init();
 
-    const baseFilter = {
-      filters: [
-        { dataSize: CpmmPoolInfoLayout.span },
-        {
-          memcmp: {
-            offset: CpmmPoolInfoLayout.offsetOf('mintA'),
-            bytes: bs58.encode(Buffer.from(inputMint.toBytes())),
-          },
-        },
-        {
-          memcmp: {
-            offset: CpmmPoolInfoLayout.offsetOf('mintB'),
-            bytes: bs58.encode(Buffer.from(outputMint.toBytes())),
-          }
-        },
-        {
-          memcmp: {
-            offset: PoolInfoLayout.offsetOf('status'),
-            bytes: bs58.encode(Buffer.from([0])),
-          }
-        }
-      ],
-      encoding: 'base64',
-    };
-
-    const quoteFilter = {
-      filters: [
-        { dataSize: CpmmPoolInfoLayout.span },
-        {
-          memcmp: {
-            offset: CpmmPoolInfoLayout.offsetOf('mintA'),
-            bytes: bs58.encode(Buffer.from(outputMint.toBytes())),
-          },
-        },
-        {
-          memcmp: {
-            offset: CpmmPoolInfoLayout.offsetOf('mintB'),
-            bytes: bs58.encode(Buffer.from(inputMint.toBytes())),
-          }
-        },
-        {
-          memcmp: {
-            offset: PoolInfoLayout.offsetOf('status'),
-            bytes: bs58.encode(Buffer.from([0])),
-          }
-        }
-      ],
-      encoding: 'base64',
-    };
+    const baseFilter = this.createPoolFilter(tokenA, tokenB);
+    
+    const quoteFilter = this.createPoolFilter(tokenB, tokenA);
 
     const [baseMatches, quoteMatches] = await Promise.all([
       this.connection.getProgramAccounts(DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM, baseFilter),
       this.connection.getProgramAccounts(DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM, quoteFilter),
     ]);
 
-    const combined = new Map<string, typeof baseMatches[0]>();
-
-    [...baseMatches, ...quoteMatches].forEach(acc => {
-      combined.set(acc.pubkey.toBase58(), acc);
+    const uniquePools = new Map<string, typeof baseMatches[0]>();
+    [...baseMatches, ...quoteMatches].forEach(account => {
+      uniquePools.set(account.pubkey.toBase58(), account);
     });
 
-    const cpmmPools = Array.from(combined.keys());
+    const availablePools = Array.from(uniquePools.keys());
 
-    if (cpmmPools.length === 0) {
-      throw new Error(`No Raydium CPMM pool found for token pair ${inputMint.toBase58()} and ${outputMint.toBase58()}`);
+    if (availablePools.length === 0) {
+      throw new Error(
+        `No Raydium CPMM pool found for token pair ${tokenA.toBase58()} and ${tokenB.toBase58()}`
+      );
     }
 
-    return await this.raydium.cpmm.getPoolInfoFromRpc(cpmmPools[0])
+    return await this.raydium.cpmm.getPoolInfoFromRpc(availablePools[0]);
+  }
+
+  private createPoolFilter(base: PublicKey, quote: PublicKey) {
+    return {
+      filters: [
+        { dataSize: CpmmPoolInfoLayout.span },
+        {
+          memcmp: {
+            offset: CpmmPoolInfoLayout.offsetOf('mintA'),
+            bytes: bs58.encode(Buffer.from(base.toBytes())),
+          },
+        },
+        {
+          memcmp: {
+            offset: CpmmPoolInfoLayout.offsetOf('mintB'),
+            bytes: bs58.encode(Buffer.from(quote.toBytes())),
+          }
+        },
+        {
+          memcmp: {
+            offset: PoolInfoLayout.offsetOf('status'),
+            bytes: bs58.encode(Buffer.from([0])),
+          }
+        }
+      ],
+      encoding: 'base64',
+    };
   }
 }
