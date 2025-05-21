@@ -4,22 +4,17 @@ import {
   Keypair,
   Transaction,
   TransactionMessage,
+  TransactionSignature,
   VersionedTransaction,
 } from '@solana/web3.js'
 
 export async function sendVtx(
   connection: Connection,
   payer: Keypair,
-  tx: Transaction,
+  tx: Transaction | VersionedTransaction,
   signers: Keypair[],
   needCompute: boolean = false
-): Promise<{
-  signature?: string
-  error?: {
-    type: number
-    msg: string
-  }
-}> {
+): Promise<TransactionSignature> {
   const blockHash = await connection.getLatestBlockhash()
 
   const messageV0 = new TransactionMessage({
@@ -58,11 +53,7 @@ export async function sendVtx(
   //   }
   // }
 
-  const result = await connection.sendTransaction(vTx)
-
-  return {
-    signature: result + '',
-  }
+  return await connection.sendTransaction(vTx);
 }
 
 function extractErrorMessage(logs: string[]): string {
